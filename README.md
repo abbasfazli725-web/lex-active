@@ -52,3 +52,9 @@ Build with `npm ci && npm run build`, deploy `dist/` to an HTTPS static host (fo
 ## Project structure
 
 `src/model.ts` contains typed records, validation, calculations and persistence; `src/App.tsx` owns screens and workflows; `src/ProgressChart.tsx` is loaded on demand; `src/style.css` defines responsive tokens and themes. Unit tests cover calculations and storage. Browser tests exercise real form submissions, reload recovery, routine reuse, charts, nutrition, themes and storage errors.
+
+## GitHub Pages deployment
+
+The included workflow builds and deploys pushes to `main`. In GitHub repository Settings → Pages, set Source to **GitHub Actions**. If the first run failed before enabling Pages, open Actions → Deploy LEX ACTIVE to GitHub Pages → Run workflow. The expected address after a successful deployment is https://abbasfazli725-web.github.io/lex-active/. Check the workflow outcome before assuming the site is live.
+
+The workflow sets `VITE_BASE_PATH=/lex-active/` so assets, manifest and service worker use the repository subpath. Other hosts default to `/`.
