@@ -36,11 +36,6 @@ jobs:
     runs-on: ubuntu-latest
     needs: build
     steps:
-      - name: Use the built application as the Pages source
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          gh api --method PATCH "repos/$GITHUB_REPOSITORY/pages" -f build_type=workflow
       - name: Wait for any older branch deployment to finish
         env:
           GH_TOKEN: ${{ github.token }}
