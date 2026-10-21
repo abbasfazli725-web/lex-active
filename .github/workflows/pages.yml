@@ -40,8 +40,8 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          for attempt in $(seq 1 24); do
-            pending=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs?head_sha=$GITHUB_SHA&per_page=100" --jq '[.workflow_runs[] | select(.name == "pages build and deployment" and .status != "completed")] | length')
+          for attempt in $(seq 1 60); do
+            pending=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs?per_page=100" --jq '[.workflow_runs[] | select((.name == "pages build and deployment" or .name == "Deploy Jekyll with GitHub Pages dependencies preinstalled") and .status != "completed")] | length')
             if [ "$pending" = "0" ]; then
               exit 0
             fi
