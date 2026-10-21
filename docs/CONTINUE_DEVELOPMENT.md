@@ -20,7 +20,7 @@ This is substantial functional work, **not** completion of the entire master spe
 
 ## External prerequisites still outstanding
 
-The hosted project URL was supplied in chat. Its public key must be configured in environment settings and GitHub Actions variables. No migration-admin or function-deployment authorisation was supplied. The hosted database/functions have not been applied/verified by this session. The environment draft includes the hosted domain and public-variable requirements; saving that draft does not apply runtime configuration or publish a snapshot.
+The hosted project URL was supplied in chat. Its public key must be configured in environment settings and GitHub Actions variables. No authenticated migration-admin or function-deployment session is available. The hosted database/functions have not been applied/verified by this session. The environment draft includes the hosted domain and public-variable requirements; saving that draft does not apply runtime configuration or publish a snapshot.
 
 Follow `DEPLOYMENT.md` exactly. Never ask for database passwords or service-role keys in chat or frontend variables. Never claim hosted Auth/Realtime/email/security passed based on local tests.
 
@@ -49,3 +49,5 @@ Always finish with a deployment build using intended public configuration, not t
 - Three real local-cloud browser workflows passed: account isolation/import/offline/multiple devices; friends/messages/notifications/exchange; account export/deletion.
 - Production device-only build passed; 11 device browser regressions passed (the three cloud cases were separately run against the local backend). Hosted setup, Deno Edge runtime, Realtime, email callbacks and physical iPhone Safari remain outside that evidence.
 - Dependency audit reported zero vulnerabilities at validation time.
+
+Client release `f0609de` was pushed to remote `main`; its GitHub Pages deployment completed successfully. The broader local-backend CI run was still running when this note was written. The hosted Supabase prerequisites remain outstanding.

@@ -17,13 +17,13 @@ Statuses: Not started, In progress, Implemented, Tested, Blocked by external con
 
 | Domain | UI | Logic | Backend | Security/tests | Hosted production |
 |---|---|---|---|---|---|
-| Device logging/themes/history/manual nutrition | Implemented | Implemented | Local persistence | Unit + browser tested | Existing release; updated client pending publish |
+| Device logging/themes/history/manual nutrition | Implemented | Implemented | Local persistence | Unit + browser tested | GitHub Pages client deployment succeeded |
 | Accounts/profiles | Registration/login/recovery/profile implemented; onboarding/photos incomplete | Implemented core flows | Auth + profile migrations | Local Auth/UI isolation tested; hosted email callbacks pending | Blocked on public config + migrations |
 | Offline/account sync | Import/status/conflict UI implemented | Outbox/CAS/dedup/tombstones/concurrent-tab safeguards | Normalised RPCs | Unit + real API + cross-device/offline browser tests | Blocked on public config + migrations |
 | Friends/feed/messages/notifications | Core workflows implemented; pagination/preferences incomplete | Implemented core flows | RLS/RPC/notification triggers | Multi-identity API + UI tested | Blocked on hosted setup; Realtime delivery unverified |
 | Exchange/relationships | Core async exchange and category grants implemented; advanced comparisons/reactions/rematches unfinished | Core snapshots/results/consent | RLS/RPCs | Ownership/block/privacy tests | Blocked on hosted setup |
 | Storage/export/deletion | JSON export + deletion implemented; full photo UI/restore unfinished | Handlers implemented | Private buckets + gateway + deletion | Real Auth/Storage handler tests; Deno Edge deployment pending | Blocked on function deployment |
-| Training | Fast logging/routines/history/rest/plates/estimated 1RM | Implemented basic calculations | Current core records sync | Unit/browser tested; advanced set/programme workflows incomplete | Included in client release; verify deployment |
+| Training | Fast logging/routines/history/rest/plates/estimated 1RM | Implemented basic calculations | Current core records sync | Unit/browser tested; advanced set/programme workflows incomplete | GitHub Pages client deployment succeeded |
 | Nutrition | Manual dated entry/edit/delete and totals | Correct recorded totals | Current food entries sync; broader tables only | Unit/browser tested; food APIs/recipes/targets not started | Basic release only |
 | Cardio/wellness/photos | Not started | Not started | Schema + private-media groundwork | Access paths tested; workflows unrun | No |
 | Ten ranks/passport/intelligence/reports/challenges | Not started | Not started | Schema groundwork only | Unrun | No |
@@ -143,9 +143,9 @@ Statuses: Not started, In progress, Implemented, Tested, Blocked by external con
 | REQ-0091 / L181 | Training recommendations. | Not started | Not started | Not started | Not started | Not verified | Unrun | No |
 | REQ-0092 / L183 | Do not add exercise tutorial or demonstration video libraries. | Implemented | Excluded by design | No prohibited integration | Not applicable | Review continues | Source review | No prohibited feature added |
 | REQ-0093 / L189 | Start, pause, resume and finish workouts. | Not started | Not started | Not started | Not started | Not verified | Unrun | No |
-| REQ-0094 / L190 | Autosaved active sessions. | Tested | Implemented | Implemented | Not required / see sync | Local storage only | Local tests passed | Included in client release; verify deployment |
-| REQ-0095 / L191 | Recovery of interrupted sessions. | Tested | Implemented | Implemented | Not required / see sync | Local storage only | Local tests passed | Included in client release; verify deployment |
-| REQ-0096 / L192 | Exercises with multiple sets. | Tested | Implemented | Implemented | Not required / see sync | Local storage only | Local tests passed | Included in client release; verify deployment |
+| REQ-0094 / L190 | Autosaved active sessions. | Tested | Implemented | Implemented | Not required / see sync | Local storage only | Local tests passed | GitHub Pages client deployment succeeded |
+| REQ-0095 / L191 | Recovery of interrupted sessions. | Tested | Implemented | Implemented | Not required / see sync | Local storage only | Local tests passed | GitHub Pages client deployment succeeded |
+| REQ-0096 / L192 | Exercises with multiple sets. | Tested | Implemented | Implemented | Not required / see sync | Local storage only | Local tests passed | GitHub Pages client deployment succeeded |
 | REQ-0097 / L193 | Weight, reps and duration. | Not started | Not started | Not started | Not started | Not verified | Unrun | No |
 | REQ-0098 / L194 | RIR and RPE. | Not started | Not started | Not started | Not started | Not verified | Unrun | No |
 | REQ-0099 / L195 | Warm-up sets. | Not started | Not started | Not started | Not started | Not verified | Unrun | No |
@@ -159,16 +159,16 @@ Statuses: Not started, In progress, Implemented, Tested, Blocked by external con
 | REQ-0107 / L203 | Exercise notes. | Not started | Not started | Not started | Not started | Not verified | Unrun | No |
 | REQ-0108 / L204 | Set notes. | Not started | Not started | Not started | Not started | Not verified | Unrun | No |
 | REQ-0109 / L205 | Workout notes. | Not started | Not started | Not started | Not started | Not verified | Unrun | No |
-| REQ-0110 / L206 | Rest timer. | Tested | Implemented | Implemented | Not required / see sync | Local storage only | Local tests passed | Included in client release; verify deployment |
+| REQ-0110 / L206 | Rest timer. | Tested | Implemented | Implemented | Not required / see sync | Local storage only | Local tests passed | GitHub Pages client deployment succeeded |
 | REQ-0111 / L207 | Automatic rest timer options. | Not started | Not started | Not started | Not started | Not verified | Unrun | No |
-| REQ-0112 / L208 | Exercise reordering. | Tested | Implemented | Implemented | Not required / see sync | Local storage only | Local tests passed | Included in client release; verify deployment |
-| REQ-0113 / L209 | Adding and removing sets. | Tested | Implemented | Implemented | Not required / see sync | Local storage only | Local tests passed | Included in client release; verify deployment |
-| REQ-0114 / L210 | Duplicate previous sets. | Tested | Implemented | Implemented | Not required / see sync | Local storage only | Local tests passed | Included in client release; verify deployment |
-| REQ-0115 / L211 | Previous performance display. | Tested | Implemented | Implemented | Not required / see sync | Local storage only | Local tests passed | Included in client release; verify deployment |
-| REQ-0116 / L212 | Plate calculator. | Tested | Implemented | Implemented | Not required / see sync | Local storage only | Local tests passed | Included in client release; verify deployment |
+| REQ-0112 / L208 | Exercise reordering. | Tested | Implemented | Implemented | Not required / see sync | Local storage only | Local tests passed | GitHub Pages client deployment succeeded |
+| REQ-0113 / L209 | Adding and removing sets. | Tested | Implemented | Implemented | Not required / see sync | Local storage only | Local tests passed | GitHub Pages client deployment succeeded |
+| REQ-0114 / L210 | Duplicate previous sets. | Tested | Implemented | Implemented | Not required / see sync | Local storage only | Local tests passed | GitHub Pages client deployment succeeded |
+| REQ-0115 / L211 | Previous performance display. | Tested | Implemented | Implemented | Not required / see sync | Local storage only | Local tests passed | GitHub Pages client deployment succeeded |
+| REQ-0116 / L212 | Plate calculator. | Tested | Implemented | Implemented | Not required / see sync | Local storage only | Local tests passed | GitHub Pages client deployment succeeded |
 | REQ-0117 / L213 | Session duration. | Not started | Not started | Not started | Not started | Not verified | Unrun | No |
-| REQ-0118 / L214 | Workout volume. | Tested | Implemented | Implemented | Not required / see sync | Local storage only | Local tests passed | Included in client release; verify deployment |
-| REQ-0119 / L215 | Estimated one-rep max where appropriate. | Tested | Implemented | Implemented | Not required / see sync | Local storage only | Local tests passed | Included in client release; verify deployment |
+| REQ-0118 / L214 | Workout volume. | Tested | Implemented | Implemented | Not required / see sync | Local storage only | Local tests passed | GitHub Pages client deployment succeeded |
+| REQ-0119 / L215 | Estimated one-rep max where appropriate. | Tested | Implemented | Implemented | Not required / see sync | Local storage only | Local tests passed | GitHub Pages client deployment succeeded |
 | REQ-0120 / L216 | Personal records. | Not started | Not started | Not started | Not started | Not verified | Unrun | No |
 | REQ-0121 / L217 | Completion summaries. | Not started | Not started | Not started | Not started | Not verified | Unrun | No |
 | REQ-0122 / L219 | The logging experience must be fast enough to use comfortably between sets at the gym. | Not started | Not started | Not started | Not started | Not verified | Unrun | No |
@@ -613,7 +613,7 @@ Statuses: Not started, In progress, Implemented, Tested, Blocked by external con
 | REQ-0506 / L927 | Installable home-screen experience. | Not started | Not started | Not started | Not started | Not verified | Unrun | No |
 | REQ-0507 / L928 | App icons. | Not started | Not started | Not started | Not started | Not verified | Unrun | No |
 | REQ-0508 / L929 | Splash-screen presentation where supported. | Not started | Not started | Not started | Not started | Not verified | Unrun | No |
-| REQ-0509 / L930 | Responsive layouts. | Tested | Implemented | Implemented | Not required / see sync | Local storage only | Local tests passed | Included in client release; verify deployment |
+| REQ-0509 / L930 | Responsive layouts. | Tested | Implemented | Implemented | Not required / see sync | Local storage only | Local tests passed | GitHub Pages client deployment succeeded |
 | REQ-0510 / L931 | Offline app shell. | Not started | Not started | Not started | Not started | Not verified | Unrun | No |
 | REQ-0511 / L932 | Local data persistence. | Not started | Not started | Not started | Not started | Not verified | Unrun | No |
 | REQ-0512 / L933 | Appropriate update behaviour. | Not started | Not started | Not started | Not started | Not verified | Unrun | No |
@@ -651,12 +651,12 @@ Statuses: Not started, In progress, Implemented, Tested, Blocked by external con
 | REQ-0534 / L976 | Authentication. | Not started | Not started | Not started | Not started | Not verified | Unrun | No |
 | REQ-0535 / L977 | Account isolation. | Blocked by external configuration | Implemented or partial | Implemented | Migrations / handlers implemented | Local multi-identity tests passed | Local API/browser tests passed | Hosted setup pending |
 | REQ-0536 / L978 | Row Level Security. | Blocked by external configuration | Implemented or partial | Implemented | Migrations / handlers implemented | Local multi-identity tests passed | Local API/browser tests passed | Hosted setup pending |
-| REQ-0537 / L979 | Workout logging. | Tested | Implemented | Implemented | Not required / see sync | Local storage only | Local tests passed | Included in client release; verify deployment |
-| REQ-0538 / L980 | Workout autosave. | Tested | Implemented | Implemented | Not required / see sync | Local storage only | Local tests passed | Included in client release; verify deployment |
-| REQ-0539 / L981 | Offline recovery. | Tested | Implemented | Implemented | Not required / see sync | Local storage only | Local tests passed | Included in client release; verify deployment |
+| REQ-0537 / L979 | Workout logging. | Tested | Implemented | Implemented | Not required / see sync | Local storage only | Local tests passed | GitHub Pages client deployment succeeded |
+| REQ-0538 / L980 | Workout autosave. | Tested | Implemented | Implemented | Not required / see sync | Local storage only | Local tests passed | GitHub Pages client deployment succeeded |
+| REQ-0539 / L981 | Offline recovery. | Tested | Implemented | Implemented | Not required / see sync | Local storage only | Local tests passed | GitHub Pages client deployment succeeded |
 | REQ-0540 / L982 | Cloud synchronisation. | Blocked by external configuration | Implemented or partial | Implemented | Migrations / handlers implemented | Local multi-identity tests passed | Local API/browser tests passed | Hosted setup pending |
 | REQ-0541 / L983 | Duplicate prevention. | Blocked by external configuration | Implemented or partial | Implemented | Migrations / handlers implemented | Local multi-identity tests passed | Local API/browser tests passed | Hosted setup pending |
-| REQ-0542 / L984 | Nutrition calculations. | Tested | Implemented | Implemented | Not required / see sync | Local storage only | Local tests passed | Included in client release; verify deployment |
+| REQ-0542 / L984 | Nutrition calculations. | Tested | Implemented | Implemented | Not required / see sync | Local storage only | Local tests passed | GitHub Pages client deployment succeeded |
 | REQ-0543 / L985 | Exercise progression. | Not started | Not started | Not started | Not started | Not verified | Unrun | No |
 | REQ-0544 / L986 | Ranking calculations. | Not started | Not started | Not started | Not started | Not verified | Unrun | No |
 | REQ-0545 / L987 | Friend requests. | Blocked by external configuration | Implemented or partial | Implemented | Migrations / handlers implemented | Local multi-identity tests passed | Local API/browser tests passed | Hosted setup pending |
@@ -665,8 +665,8 @@ Statuses: Not started, In progress, Implemented, Tested, Blocked by external con
 | REQ-0548 / L990 | Workout Exchange. | Not started | Not started | Not started | Not started | Not verified | Unrun | No |
 | REQ-0549 / L991 | Notification behaviour. | Not started | Not started | Not started | Not started | Not verified | Unrun | No |
 | REQ-0550 / L992 | Privacy settings. | Not started | Not started | Not started | Not started | Not verified | Unrun | No |
-| REQ-0551 / L993 | Theme persistence. | Tested | Implemented | Implemented | Not required / see sync | Local storage only | Local tests passed | Included in client release; verify deployment |
-| REQ-0552 / L994 | Responsive layouts. | Tested | Implemented | Implemented | Not required / see sync | Local storage only | Local tests passed | Included in client release; verify deployment |
+| REQ-0551 / L993 | Theme persistence. | Tested | Implemented | Implemented | Not required / see sync | Local storage only | Local tests passed | GitHub Pages client deployment succeeded |
+| REQ-0552 / L994 | Responsive layouts. | Tested | Implemented | Implemented | Not required / see sync | Local storage only | Local tests passed | GitHub Pages client deployment succeeded |
 | REQ-0553 / L995 | Data export. | Blocked by external configuration | Implemented or partial | Implemented | Migrations / handlers implemented | Local multi-identity tests passed | Local API/browser tests passed | Hosted setup pending |
 | REQ-0554 / L996 | Account deletion. | Blocked by external configuration | Implemented or partial | Implemented | Migrations / handlers implemented | Local multi-identity tests passed | Local API/browser tests passed | Hosted setup pending |
 | REQ-0555 / L1000 | Type checking. | Not started | Not started | Not started | Not started | Not verified | Unrun | No |
