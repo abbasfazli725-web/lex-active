@@ -1193,3 +1193,337 @@ summary {
     scroll-behavior: auto !important;
   }
 }
+/* Training: all sets in one place, with the controls used most kept closest. */
+.logging-hint,
+.builder-hint,
+.draft-status {
+  font-size: 12px;
+}
+.draft-status {
+  color: var(--accent);
+}
+.fast-set-row {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) minmax(0, 1fr) 48px;
+  gap: 10px;
+  align-items: center;
+  padding: 6px 0;
+}
+.fast-set-row.set-head {
+  font-size: 9px;
+  color: var(--muted);
+  padding-top: 8px;
+}
+.fast-set-row input {
+  text-align: center;
+  font-size: 17px;
+  font-weight: 550;
+  padding: 10px 5px;
+  height: 48px;
+}
+.fast-set-row .complete {
+  height: 48px;
+}
+.set-number {
+  font-size: 12px;
+  color: var(--muted);
+  text-align: center;
+}
+.set-done input {
+  background: var(--accent-soft);
+  border-color: transparent;
+}
+.set-count {
+  font-size: 10px;
+  color: var(--accent);
+}
+.previous-result {
+  font-size: 11px;
+  margin-bottom: 8px;
+}
+.exercise-footer {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 6px;
+}
+.exercise-options {
+  max-width: 65%;
+  text-align: right;
+}
+.exercise-options summary {
+  padding: 12px 4px;
+  color: var(--muted);
+  font-size: 11px;
+}
+.exercise-menu {
+  display: grid;
+  gap: 4px;
+  margin: 5px 0;
+  text-align: left;
+  padding: 8px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 9px;
+}
+.exercise-menu button {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 44px;
+  background: transparent;
+  border: 0;
+  text-align: left;
+  font-size: 12px;
+  padding: 8px;
+}
+.workout-actions {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  background: var(--surface);
+  padding: 12px 0;
+  border-top: 1px solid var(--line);
+}
+.workout-actions .button {
+  flex: 1;
+}
+.routine-meta {
+  font-size: 11px;
+  color: var(--accent);
+}
+.routine-exercise {
+  margin: 15px 0;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--bg);
+}
+.routine-exercise .section-heading {
+  margin: 0 0 12px;
+}
+.routine-exercise h3 {
+  font-size: 14px;
+}
+.routine-targets {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+.routine-targets label > span {
+  display: block;
+  font-size: 10px;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+.routine-targets input {
+  padding: 10px 6px;
+  text-align: center;
+  font-size: 17px;
+}
+.routine-categories summary {
+  padding-top: 8px;
+  line-height: 1.5;
+}
+.routine-single-set {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr) minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+  margin: 8px 0;
+  font-size: 12px;
+}
+.routine-single-set input {
+  text-align: center;
+}
+.routine-add > p {
+  font-size: 12px;
+  margin: 14px 0;
+}
+.routine-add > .button {
+  width: 100%;
+}
+.builder-save {
+  display: flex;
+  gap: 10px;
+  position: sticky;
+  bottom: -23px;
+  background: var(--surface);
+  padding: 16px 0;
+  margin-top: 15px;
+  border-top: 1px solid var(--line);
+  z-index: 3;
+}
+.builder-save .button {
+  flex: 1;
+}
+.picker-done {
+  position: sticky;
+  bottom: -23px;
+  background: var(--surface);
+  padding: 15px 0 0;
+}
+.picker-done .button {
+  width: 100%;
+}
+.exercise-picker .exercise-list {
+  max-height: 240px;
+}
+.exercise-picker button[aria-pressed="true"] {
+  opacity: 1;
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+.home-quick-start {
+  margin-bottom: 26px;
+}
+.quick-routines {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+}
+.quick-routines > button {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 215px;
+  flex: 1;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  border-radius: 12px;
+  padding: 18px;
+  text-align: left;
+}
+.quick-routines > button > svg {
+  color: var(--accent);
+  flex-shrink: 0;
+}
+.quick-routines > button > span {
+  flex: 1;
+  min-width: 0;
+}
+.quick-routines strong {
+  display: block;
+  font-size: 12px;
+}
+.quick-routines small {
+  display: block;
+  font-size: 10px;
+  margin-top: 5px;
+}
+.routine-builder > .field {
+  margin-bottom: 8px;
+}
+.routine-builder .exercise-list button {
+  padding: 10px 8px;
+}
+@media (max-width: 760px) {
+  .workout-actions {
+    bottom: calc(72px + env(safe-area-inset-bottom));
+    box-shadow: 0 -10px 15px var(--surface);
+    margin-left: -1px;
+    margin-right: -1px;
+  }
+  .workout-actions .button {
+    font-size: 11px;
+    padding: 11px 10px;
+    flex-basis: 40%;
+  }
+  .workout-actions > .danger {
+    margin-left: auto;
+  }
+  .routine-exercise {
+    padding: 13px;
+  }
+  .quick-routines > button {
+    min-width: 210px;
+    padding: 15px;
+  }
+  .builder-save {
+    bottom: -23px;
+    padding-bottom: calc(16px + env(safe-area-inset-bottom));
+  }
+  .fast-set-row {
+    gap: 9px;
+  }
+}
+.hero-workout {
+  display: flex;
+  max-width: max-content;
+  margin-top: 8px;
+  color: var(--text);
+}
+.exercise-first {
+  margin-bottom: 20px;
+}
+.exercise-first .section-heading > div p {
+  font-size: 12px;
+  margin: 6px 0 0;
+}
+.recent-exercises {
+  display: flex;
+  gap: 9px;
+  overflow-x: auto;
+}
+.recent-exercises button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 13px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--bg);
+  font-size: 12px;
+  white-space: nowrap;
+  min-height: 48px;
+}
+.recent-exercises button svg {
+  color: var(--accent);
+}
+.quick-log-row {
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr) minmax(0, 1fr) 40px;
+  gap: 9px;
+  align-items: center;
+  margin-bottom: 12px;
+  font-size: 12px;
+}
+.quick-log-row input {
+  font-size: 18px;
+  text-align: center;
+  padding: 10px 4px;
+}
+.quick-log-row .icon-button {
+  min-width: 40px;
+}
+.quick-exercise .builder-save .button {
+  flex: 1;
+}
+.routine-builder .builder-hint {
+  font-size: 11px;
+}
+.routine-builder .routine-categories {
+  display: none;
+}
+@media (max-width: 760px) {
+  .exercise-first .section-heading {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+  .exercise-first .section-heading > .button {
+    width: 100%;
+  }
+  .notice {
+    flex-wrap: wrap;
+  }
+  .notice .text-button {
+    padding: 0 8px;
+  }
+  .food-row {
+    flex-wrap: wrap;
+  }
+  .food-row > div {
+    min-width: 40%;
+  }
+}

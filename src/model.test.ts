@@ -8,6 +8,10 @@ import {
   load,
   persist,
   KEY,
+  quickLogToWorkout,
+  lastPerformance,
+  newExercise,
+  nutritionForDate,
 } from "./model";
 import type { Workout, Routine } from "./model";
 const workout: Workout = {
@@ -94,4 +98,108 @@ it("sums entered macros without inferring absent food", () => {
       },
     ]),
   ).toEqual({ calories: 600, protein: 30, carbs: 70, fat: 22 });
+});
+
+describe("fast logging compatibility", () => {
+  it("restores existing v1 records without categories becoming a required step", () => {
+    persist({
+      ...initial,
+      routines: [
+        {
+          id: "r",
+          name: "Old routine",
+          categories: ["Upper Body"],
+          exercises: workout.exercises,
+        },
+      ],
+    });
+    expect(load().routines[0].categories).toEqual(["Upper Body"]);
+  });
+});
+
+it("uses only actual completed previous sets, most recent date first", () => {
+  const older = { ...workout, id: "old", date: "2026-10-20" };
+  const latest = {
+    ...workout,
+    id: "new",
+    date: "2026-10-22",
+    exercises: [
+      {
+        ...workout.exercises[0],
+        sets: [
+          { id: "actual", weight: 42.5, reps: 8, done: true },
+          { id: "unfinished", weight: 90, reps: 1, done: false },
+        ],
+      },
+    ],
+  };
+  expect(lastPerformance("press", [latest, older])?.sets).toEqual([
+    latest.exercises[0].sets[0],
+  ]);
+  const next = newExercise("Press", [older, latest]);
+  expect(next.sets).toHaveLength(1);
+  expect(next.sets[0]).toMatchObject({ weight: 42.5, reps: 8, done: false });
+});
+it("reuses results without rewriting a saved exercise group or completed history", () => {
+  const r = {
+    id: "r",
+    name: "Simple",
+    categories: [],
+    exercises: workout.exercises,
+  };
+  const before = JSON.stringify([r, workout]);
+  const next = fromRoutine(r, [workout]);
+  expect(next.routineId).toBe("r");
+  expect(next.exercises[0].sets.every((s) => !s.done)).toBe(true);
+  expect(JSON.stringify([r, workout])).toBe(before);
+});
+it("does not turn incomplete or invalid quick drafts into logged performance", () => {
+  const d = {
+    id: "q",
+    name: "Press",
+    date: "2026-10-21",
+    sets: [{ id: "s", weight: "", reps: "8" }],
+  };
+  expect(quickLogToWorkout(d)).toBeNull();
+  expect(
+    quickLogToWorkout({ ...d, sets: [{ id: "s", weight: "40", reps: "1.5" }] }),
+  ).toBeNull();
+  expect(
+    quickLogToWorkout({ ...d, sets: [{ id: "s", weight: "0", reps: "8" }] })
+      ?.exercises[0].sets[0],
+  ).toMatchObject({ weight: 0, reps: 8, done: true });
+});
+it("shares the same dated nutrition calculation for Home and the diary", () => {
+  const f = {
+    id: "f",
+    name: "Tofu",
+    meal: "Lunch",
+    calories: 400,
+    protein: 30,
+    carbs: 40,
+    fat: 10,
+    date: "2026-10-21",
+  };
+  expect(
+    nutritionForDate(
+      [f, { ...f, id: "other", date: "2026-10-20", calories: 100 }],
+      f.date,
+    ).calories,
+  ).toBe(400);
+  expect(nutritionForDate([f], "2026-10-22").calories).toBe(0);
+});
+it("round trips unfinished quick logs and exercise group drafts without touching v1 history", () => {
+  const state = {
+    ...initial,
+    workouts: [workout],
+    quickDraft: {
+      id: "q",
+      name: "Press",
+      date: "2026-10-21",
+      sets: [{ id: "s", weight: "40", reps: "" }],
+    },
+    routineDraft: { id: "r", name: "Draft", categories: [], exercises: [] },
+  };
+  persist(state);
+  expect(load()).toEqual(state);
 });

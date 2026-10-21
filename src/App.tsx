@@ -1,5 +1,6 @@
 import { lazy, Suspense, useEffect, useState } from "react";
-import type { FormEvent, ReactNode } from "react";
+import { useRegisterSW } from "virtual:pwa-register/react";
+import type { ReactNode } from "react";
 import {
   Home,
   Dumbbell,
@@ -19,6 +20,7 @@ import {
   Repeat2,
   Download,
   Flower2,
+  Pencil,
 } from "lucide-react";
 const ProgressChart = lazy(() => import("./ProgressChart"));
 import {
@@ -31,10 +33,16 @@ import {
   completedSets,
   totals,
   fromRoutine,
+  newExercise,
+  nutritionForDate,
+  quickLogToWorkout,
   KEY,
   localDate,
 } from "./model";
-import type { State, Workout, Routine, Theme } from "./model";
+import type { State, Workout, Routine, Theme, Food } from "./model";
+import { ExercisePicker, SetEditor, RoutineEditor } from "./TrainingEditor";
+import QuickExercise, { exerciseDraft } from "./QuickExercise";
+import FoodEditor from "./FoodEditor";
 const tabs = [
   { name: "Home", icon: Home },
   { name: "Train", icon: Dumbbell },
@@ -43,34 +51,6 @@ const tabs = [
   { name: "Social", icon: Users },
 ] as const;
 type Tab = (typeof tabs)[number]["name"];
-const categories = [
-  "Upper Body",
-  "Lower Body",
-  "Glutes",
-  "Legs",
-  "Arms",
-  "Push",
-  "Pull",
-  "Full Body",
-  "Cardio",
-  "Custom",
-];
-const exercises = [
-  "Barbell squat",
-  "Bench press",
-  "Deadlift",
-  "Hip thrust",
-  "Romanian deadlift",
-  "Lat pulldown",
-  "Seated row",
-  "Shoulder press",
-  "Bicep curl",
-  "Tricep extension",
-  "Leg press",
-  "Lateral raise",
-  "Push-up",
-  "Lunge",
-];
 function Button({
   children,
   onClick,
@@ -152,6 +132,10 @@ function Dialog({
   );
 }
 export default function App() {
+  const {
+    needRefresh: [needRefresh, setNeedRefresh],
+    updateServiceWorker,
+  } = useRegisterSW({ immediate: true });
   const [boot] = useState(() => {
     try {
       return { data: load(), error: "" };
@@ -164,14 +148,97 @@ export default function App() {
     [tab, setTab] = useState<Tab>("Home"),
     [modal, setModal] = useState(""),
     [notice, setNotice] = useState(""),
-    [filter, setFilter] = useState("All"),
     [query, setQuery] = useState(""),
-    [exerciseQuery, setExerciseQuery] = useState(""),
     [detail, setDetail] = useState<Workout | null>(null),
-    [diaryDate, setDiaryDate] = useState(today()),
+    [diaryDate, setDiaryDate] = useState(""),
     [metric, setMetric] = useState("Volume"),
     [range, setRange] = useState("30"),
     [selectedExercise, setSelectedExercise] = useState("");
+  const [day, setDay] = useState(today());
+  const [lastQuickName, setLastQuickName] = useState("");
+  const [editingFood, setEditingFood] = useState<Food | null>(null);
+  const diaryDay = diaryDate || day;
+  useEffect(() => {
+    const refreshDay = () => setDay(today());
+    const refresh = () => {
+      refreshDay();
+      if (boot.error) return;
+      try {
+        setData(load());
+      } catch {
+        setError(
+          "Saved data could not be refreshed. Export a backup before changing browser storage.",
+        );
+      }
+    };
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === KEY || e.key === null) refresh();
+    };
+    const onVisible = () => {
+      if (document.visibilityState === "visible") refresh();
+    };
+    window.addEventListener("storage", onStorage);
+    window.addEventListener("focus", refresh);
+    document.addEventListener("visibilitychange", onVisible);
+    const timer = setInterval(refreshDay, 30000);
+    return () => {
+      window.removeEventListener("storage", onStorage);
+      window.removeEventListener("focus", refresh);
+      document.removeEventListener("visibilitychange", onVisible);
+      clearInterval(timer);
+    };
+  }, [boot.error]);
+  function openQuick(name?: string) {
+    if (
+      name &&
+      data.quickDraft?.name &&
+      name !== data.quickDraft.name &&
+      !confirm("Replace your unsaved exercise draft?")
+    )
+      return;
+    const draft = name
+      ? exerciseDraft(name, data.workouts)
+      : (data.quickDraft ?? {
+          id: id(),
+          name: "",
+          date: today(),
+          sets: [{ id: id(), weight: "", reps: "" }],
+        });
+    if (update({ ...data, quickDraft: draft })) setModal("quickExercise");
+  }
+  function saveQuick() {
+    if (!data.quickDraft) return;
+    const w = quickLogToWorkout(data.quickDraft);
+    if (!w) return;
+    if (
+      update({
+        ...data,
+        workouts: [...data.workouts.filter((v) => v.id !== w.id), w],
+        quickDraft: null,
+      })
+    ) {
+      setModal("");
+      setLastQuickName(w.name);
+      setNotice(
+        `${w.name} saved · ${completedSets(w)} sets. You’re free to carry on.`,
+      );
+    }
+  }
+  function openFood(date = day, food?: Food) {
+    setEditingFood(
+      food ?? {
+        id: id(),
+        date,
+        name: "",
+        meal: "Snack",
+        calories: 0,
+        protein: 0,
+        carbs: 0,
+        fat: 0,
+      },
+    );
+    setModal("food");
+  }
   const [deviceDark, setDeviceDark] = useState(
     matchMedia("(prefers-color-scheme: dark)").matches,
   );
@@ -235,7 +302,7 @@ export default function App() {
       update({
         ...data,
         active: r
-          ? fromRoutine(r)
+          ? fromRoutine(r, data.workouts)
           : { id: id(), name: "My workout", date: today(), exercises: [] },
       })
     )
@@ -245,20 +312,82 @@ export default function App() {
     update({ ...data, active: w });
   }
   function addExercise(name: string) {
-    if (!data.active || !name.trim()) return;
+    if (
+      !data.active ||
+      !name.trim() ||
+      data.active.exercises.some(
+        (e) => e.name.toLowerCase() === name.trim().toLowerCase(),
+      )
+    )
+      return;
     active({
       ...data.active,
       exercises: [
         ...data.active.exercises,
-        {
-          id: id(),
-          name: name.trim(),
-          sets: [{ id: id(), weight: 0, reps: 10, done: false }],
-        },
+        newExercise(name.trim(), data.workouts),
       ],
     });
-    setModal("");
-    setExerciseQuery("");
+  }
+  function openRoutine(r?: Routine, fromWorkout = false) {
+    if (
+      (r || fromWorkout) &&
+      data.routineDraft &&
+      (!r || data.routineDraft.id !== r.id) &&
+      !confirm("Replace your unfinished routine draft?")
+    )
+      return;
+    const draft = r
+      ? structuredClone(r)
+      : fromWorkout && data.active
+        ? {
+            id: id(),
+            name: data.active.name,
+            categories: [],
+            exercises: structuredClone(data.active.exercises),
+          }
+        : (data.routineDraft ?? {
+            id: id(),
+            name: "",
+            categories: [],
+            exercises: [],
+          });
+    if (update({ ...data, routineDraft: draft })) setModal("routineBuilder");
+  }
+  function saveRoutine(startAfter = false) {
+    const draft = data.routineDraft;
+    if (
+      !draft?.name.trim() ||
+      !draft.exercises.length ||
+      (startAfter && data.active)
+    )
+      return;
+    const routine = {
+      ...draft,
+      name: draft.name.trim(),
+      exercises: draft.exercises.map((e) => ({
+        ...e,
+        sets: e.sets.map((s) => ({ ...s, done: false })),
+      })),
+    };
+    const exists = data.routines.some((r) => r.id === routine.id);
+    if (
+      update({
+        ...data,
+        routines: exists
+          ? data.routines.map((r) => (r.id === routine.id ? routine : r))
+          : [...data.routines, routine],
+        routineDraft: null,
+        active: startAfter ? fromRoutine(routine, data.workouts) : data.active,
+      })
+    ) {
+      setModal("");
+      setNotice(
+        startAfter
+          ? "Ready to train. Adjust the numbers if needed, then tap ✓ after each set."
+          : "Routine saved.",
+      );
+      if (startAfter) setTab("Train");
+    }
   }
   function finish() {
     if (!data.active || !completedSets(data.active)) {
@@ -276,24 +405,8 @@ export default function App() {
       setDetail(w);
     }
   }
-  function saveRoutine(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    if (!data.active?.exercises.length) return;
-    const f = new FormData(e.currentTarget);
-    const r: Routine = {
-      id: id(),
-      name: String(f.get("name")).trim(),
-      categories: f.getAll("category").map(String),
-      exercises: structuredClone(data.active.exercises),
-    };
-    if (!r.name) return;
-    if (update({ ...data, routines: [...data.routines, r] })) {
-      setModal("");
-      setNotice("Routine saved. Your active workout is still open.");
-    }
-  }
-  const todaysFoods = data.foods.filter((f) => f.date === today()),
-    macros = totals(todaysFoods),
+  const todaysFoods = data.foods.filter((f) => f.date === day),
+    macros = nutritionForDate(data.foods, day),
     recent = [...data.workouts]
       .sort((a, b) => b.date.localeCompare(a.date))
       .slice(0, 3);
@@ -302,8 +415,8 @@ export default function App() {
     d.setDate(d.getDate() - 6);
     return w.date >= localDate(d);
   });
-  const diary = data.foods.filter((f) => f.date === diaryDate),
-    dayTotals = totals(diary);
+  const diary = data.foods.filter((f) => f.date === diaryDay),
+    dayTotals = nutritionForDate(data.foods, diaryDay);
   const names = [
     ...new Set(data.workouts.flatMap((w) => w.exercises.map((e) => e.name))),
   ];
@@ -389,6 +502,13 @@ export default function App() {
           </a>
           <span className="desktop-header">YOUR SPACE TO GROW</span>
           <div className="header-actions">
+            <button
+              className="icon-button"
+              aria-label="Quick log exercise"
+              onClick={() => openQuick()}
+            >
+              <Plus size={21} />
+            </button>
             <span className="saved">
               <i /> On-device storage
             </span>
@@ -409,6 +529,24 @@ export default function App() {
           </div>
         </header>
         <main>
+          {needRefresh && (
+            <div role="status" className="notice">
+              <span>A new version is ready. Your saved records stay here.</span>
+              <button
+                className="text-button"
+                onClick={() => void updateServiceWorker(true)}
+              >
+                Update app
+              </button>
+              <button
+                className="icon-button"
+                aria-label="Dismiss update"
+                onClick={() => setNeedRefresh(false)}
+              >
+                <X size={16} />
+              </button>
+            </div>
+          )}
           {error && (
             <div role="alert" className="alert">
               {error}
@@ -418,6 +556,14 @@ export default function App() {
           {notice && (
             <div role="status" className="notice">
               {notice}
+              {lastQuickName && notice.startsWith(`${lastQuickName} saved`) && (
+                <button
+                  className="text-button"
+                  onClick={() => openQuick(lastQuickName)}
+                >
+                  Log again
+                </button>
+              )}
               <button
                 aria-label="Dismiss message"
                 onClick={() => setNotice("")}
@@ -459,10 +605,19 @@ export default function App() {
                     <br />
                     We’ll keep track of the rest.
                   </p>
-                  <Button onClick={() => start()}>
-                    {data.active ? "Resume workout" : "Start a workout"}
-                    <ArrowUpRight size={18} />
+                  <Button onClick={() => openQuick()}>
+                    {data.quickDraft?.name
+                      ? "Continue exercise log"
+                      : "Log an exercise"}
+                    <Plus size={18} />
                   </Button>
+                  <button
+                    className="text-button hero-workout"
+                    onClick={() => start()}
+                  >
+                    {data.active ? "Resume workout" : "Start a workout"}
+                    <ArrowUpRight size={16} />
+                  </button>
                 </div>
                 <div className="hero-art" aria-hidden="true">
                   <div className="orb orb-one" />
@@ -471,6 +626,53 @@ export default function App() {
                   <div className="art-caption">MOVE WITH INTENTION</div>
                 </div>
               </section>
+              {(data.routines.length > 0 || recent.length > 0) && (
+                <section
+                  className="home-quick-start"
+                  aria-label="Quick start training"
+                >
+                  <div className="section-heading">
+                    <h2>Ready to go</h2>
+                    <span>One tap to start</span>
+                  </div>
+                  <div className="quick-routines">
+                    {data.routines.slice(0, 3).map((r) => (
+                      <button key={r.id} onClick={() => start(r)}>
+                        <Dumbbell size={19} />
+                        <span>
+                          <strong>
+                            {data.active ? "Resume workout" : r.name}
+                          </strong>
+                          <small>{r.exercises.length} exercises</small>
+                        </span>
+                        <ArrowUpRight size={18} />
+                      </button>
+                    ))}
+                    {!data.routines.length && recent.length > 0 && (
+                      <button
+                        onClick={() =>
+                          recent[0].kind === "exercise"
+                            ? openQuick(recent[0].name)
+                            : start({ ...recent[0], categories: [] })
+                        }
+                      >
+                        <Repeat2 size={19} />
+                        <span>
+                          <strong>
+                            {data.active
+                              ? "Resume workout"
+                              : recent[0].kind === "exercise"
+                                ? "Log exercise again"
+                                : "Repeat last workout"}
+                          </strong>
+                          <small>{recent[0].name}</small>
+                        </span>
+                        <ArrowUpRight size={18} />
+                      </button>
+                    )}
+                  </div>
+                </section>
+              )}
               <div className="section-heading">
                 <h2>Your day, at a glance</h2>
                 <span>Small steps add up.</span>
@@ -482,15 +684,21 @@ export default function App() {
                   </span>
                   <strong>
                     {week.length}
-                    <small> workouts</small>
+                    <small> training logs</small>
                   </strong>
                   <p>
                     {week.length
                       ? "Every session counts."
-                      : "Your next session starts here."}
+                      : "Log an exercise whenever you like."}
                   </p>
                 </button>
-                <button className="stat" onClick={() => setTab("Nutrition")}>
+                <button
+                  className="stat"
+                  onClick={() => {
+                    setDiaryDate("");
+                    setTab("Nutrition");
+                  }}
+                >
                   <span>
                     <Utensils size={18} /> Today’s nutrition
                   </span>
@@ -500,8 +708,10 @@ export default function App() {
                   </strong>
                   <p>
                     {todaysFoods.length
-                      ? `${macros.protein}g protein · ${todaysFoods.length} entries`
-                      : "Add your first meal of the day."}
+                      ? `${macros.protein}g protein · ${todaysFoods.length} entries today`
+                      : data.foods.length
+                        ? `Latest food dated ${[...data.foods].sort((a, b) => b.date.localeCompare(a.date))[0].date}. Check diary date.`
+                        : "Add your first meal of the day."}
                   </p>
                 </button>
                 <button className="stat" onClick={() => setTab("Progress")}>
@@ -568,9 +778,43 @@ export default function App() {
             <>
               <PageTitle
                 kicker="BUILD YOUR STRONG"
-                title="Your training."
-                text="A space for every rep, routine and little win."
+                title="Log it. Then live it."
+                text="Log now. Add more whenever you like. Full workouts are optional."
               />
+              <section className="card exercise-first">
+                <div className="section-heading">
+                  <div>
+                    <h2>What did you train?</h2>
+                    <p>Save an exercise now. Log another whenever you like.</p>
+                  </div>
+                  <Button onClick={() => openQuick()}>
+                    <Plus size={18} /> Log exercise
+                  </Button>
+                </div>
+                {data.quickDraft?.name && (
+                  <button className="text-button" onClick={() => openQuick()}>
+                    Continue unsaved {data.quickDraft.name} log{" "}
+                    <ChevronRight size={16} />
+                  </button>
+                )}
+                <div className="recent-exercises">
+                  {[
+                    ...new Set(
+                      [...data.workouts]
+                        .reverse()
+                        .flatMap((w) => w.exercises.map((e) => e.name)),
+                    ),
+                  ]
+                    .slice(0, 6)
+                    .map((name) => (
+                      <button key={name} onClick={() => openQuick(name)}>
+                        <Dumbbell size={17} />
+                        {name}
+                        <Plus size={16} />
+                      </button>
+                    ))}
+                </div>
+              </section>
               {data.active ? (
                 <section className="card workout-editor">
                   <div className="section-heading">
@@ -586,155 +830,25 @@ export default function App() {
                       }
                     />
                   </Field>
-                  {data.active.exercises.map((ex, ei) => (
-                    <div className="exercise" key={ex.id}>
-                      <div className="section-heading">
-                        <h3>{ex.name}</h3>
-                        <button
-                          className="icon-button"
-                          aria-label={`Remove ${ex.name}`}
-                          onClick={() =>
-                            active({
-                              ...data.active!,
-                              exercises: data.active!.exercises.filter(
-                                (e) => e.id !== ex.id,
-                              ),
-                            })
-                          }
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      </div>
-                      <div className="set-row set-head">
-                        <span>SET</span>
-                        <span>KG</span>
-                        <span>REPS</span>
-                        <span>DONE</span>
-                        <span />
-                      </div>
-                      {ex.sets.map((s, si) => (
-                        <div className="set-row" key={s.id}>
-                          <span>{si + 1}</span>
-                          {(["weight", "reps"] as const).map((key) => (
-                            <input
-                              key={key}
-                              aria-label={`${ex.name} set ${si + 1} ${key}`}
-                              type="number"
-                              min={key === "reps" ? 1 : 0}
-                              max={key === "reps" ? 1000 : 2000}
-                              step={key === "reps" ? 1 : 0.5}
-                              value={s[key]}
-                              onChange={(e) => {
-                                const value = e.target.valueAsNumber;
-                                if (
-                                  !Number.isFinite(value) ||
-                                  value < (key === "reps" ? 1 : 0) ||
-                                  value > (key === "reps" ? 1000 : 2000) ||
-                                  (key === "reps" && !Number.isInteger(value))
-                                )
-                                  return;
-                                active({
-                                  ...data.active!,
-                                  exercises: data.active!.exercises.map(
-                                    (v, i) =>
-                                      i === ei
-                                        ? {
-                                            ...v,
-                                            sets: v.sets.map((t, j) =>
-                                              j === si
-                                                ? { ...t, [key]: value }
-                                                : t,
-                                            ),
-                                          }
-                                        : v,
-                                  ),
-                                });
-                              }}
-                            />
-                          ))}
-                          <button
-                            className={`complete ${s.done ? "checked" : ""}`}
-                            aria-label={`Complete ${ex.name} set ${si + 1}`}
-                            aria-pressed={s.done}
-                            onClick={() =>
-                              active({
-                                ...data.active!,
-                                exercises: data.active!.exercises.map((v, i) =>
-                                  i === ei
-                                    ? {
-                                        ...v,
-                                        sets: v.sets.map((t, j) =>
-                                          j === si
-                                            ? { ...t, done: !t.done }
-                                            : t,
-                                        ),
-                                      }
-                                    : v,
-                                ),
-                              })
-                            }
-                          >
-                            <Check size={18} />
-                          </button>
-                          <button
-                            className="icon-button"
-                            aria-label={`Delete ${ex.name} set ${si + 1}`}
-                            onClick={() =>
-                              active({
-                                ...data.active!,
-                                exercises: data.active!.exercises.map((v, i) =>
-                                  i === ei
-                                    ? {
-                                        ...v,
-                                        sets: v.sets.filter(
-                                          (t) => t.id !== s.id,
-                                        ),
-                                      }
-                                    : v,
-                                ),
-                              })
-                            }
-                          >
-                            <X size={16} />
-                          </button>
-                        </div>
-                      ))}
-                      <button
-                        className="text-button"
-                        onClick={() =>
-                          active({
-                            ...data.active!,
-                            exercises: data.active!.exercises.map((v, i) =>
-                              i === ei
-                                ? {
-                                    ...v,
-                                    sets: [
-                                      ...v.sets,
-                                      {
-                                        id: id(),
-                                        weight: v.sets.at(-1)?.weight || 0,
-                                        reps: v.sets.at(-1)?.reps || 10,
-                                        done: false,
-                                      },
-                                    ],
-                                  }
-                                : v,
-                            ),
-                          })
-                        }
-                      >
-                        <Plus size={16} /> Add set
-                      </button>
-                    </div>
-                  ))}
-                  <div className="actions">
+                  <p className="logging-hint">
+                    Edit only what changes. Tap ✓ after each set—your results
+                    save automatically.
+                  </p>
+                  <SetEditor
+                    exercises={data.active.exercises}
+                    history={data.workouts}
+                    onChange={(exercises) =>
+                      active({ ...data.active!, exercises })
+                    }
+                  />
+                  <div className="actions workout-actions">
                     <Button secondary onClick={() => setModal("exercise")}>
                       <Plus size={17} /> Add exercise
                     </Button>
                     <Button
                       secondary
                       disabled={!data.active.exercises.length}
-                      onClick={() => setModal("routine")}
+                      onClick={() => openRoutine(undefined, true)}
                     >
                       Save as routine
                     </Button>
@@ -755,8 +869,8 @@ export default function App() {
               ) : (
                 <section className="card start-card">
                   <div>
-                    <h2>Ready when you are.</h2>
-                    <p>Start fresh, or pick a routine below.</p>
+                    <h2>Prefer a full workout?</h2>
+                    <p>Optional. You can leave it and come back at any time.</p>
                   </div>
                   <Button onClick={() => start()}>
                     <Plus size={18} /> Start workout
@@ -764,43 +878,45 @@ export default function App() {
                 </section>
               )}
               <div className="section-heading">
-                <h2>Your routines</h2>
-                <span>{data.routines.length} saved</span>
+                <h2>Saved exercise groups</h2>
+                <Button secondary onClick={() => openRoutine()}>
+                  <Plus size={17} />
+                  {data.routineDraft ? "Continue routine" : "New routine"}
+                </Button>
               </div>
               <input
-                aria-label="Search routines"
-                placeholder="Search your routines…"
+                aria-label="Search saved exercise groups"
+                placeholder="Search saved exercise groups…"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
               />
-              <div className="chips">
-                {["All", ...categories].map((c) => (
-                  <button
-                    key={c}
-                    className={filter === c ? "selected" : ""}
-                    onClick={() => setFilter(c)}
-                  >
-                    {c}
-                  </button>
-                ))}
-              </div>
               <div className="routine-grid">
                 {data.routines
-                  .filter(
-                    (r) =>
-                      (filter === "All" || r.categories.includes(filter)) &&
-                      r.name.toLowerCase().includes(query.toLowerCase()),
+                  .filter((r) =>
+                    r.name.toLowerCase().includes(query.toLowerCase()),
                   )
                   .map((r) => (
                     <section className="card" key={r.id}>
                       <Dumbbell className="accent" />
                       <h3>{r.name}</h3>
-                      <p>{r.categories.join(" · ") || "Uncategorised"}</p>
-                      <p>{r.exercises.length} exercises</p>
+
+                      <p>{r.exercises.map((e) => e.name).join(" · ")}</p>
+                      <span className="routine-meta">
+                        {r.exercises.length} exercises ·{" "}
+                        {r.exercises.reduce((n, e) => n + e.sets.length, 0)}{" "}
+                        planned sets
+                      </span>
                       <div className="actions">
                         <Button secondary onClick={() => start(r)}>
                           {data.active ? "Resume workout" : "Start routine"}
                         </Button>
+                        <button
+                          className="icon-button"
+                          aria-label={`Edit routine ${r.name}`}
+                          onClick={() => openRoutine(r)}
+                        >
+                          <Pencil size={18} />
+                        </button>
                         <button
                           className="icon-button"
                           aria-label={`Duplicate ${r.name}`}
@@ -842,13 +958,13 @@ export default function App() {
               {!data.routines.length && (
                 <section className="card">
                   <Empty title="Your favourites, all in one place">
-                    Add exercises to a workout, then choose “Save as routine” to
-                    build your own training library.
+                    Save exercises you often do together as an optional
+                    shortcut. Or just log one exercise above.
                   </Empty>
                 </section>
               )}
               <section className="card history">
-                <h2>Workout history</h2>
+                <h2>Exercise & workout history</h2>
                 {data.workouts.length ? (
                   [...data.workouts]
                     .reverse()
@@ -861,8 +977,8 @@ export default function App() {
                     ))
                 ) : (
                   <p>
-                    No finished workouts yet. Your history starts with your
-                    first session.
+                    No training logged yet. Save an exercise or a workout to
+                    start your history.
                   </p>
                 )}
               </section>
@@ -880,16 +996,48 @@ export default function App() {
                   <input
                     type="date"
                     required
-                    value={diaryDate}
+                    value={diaryDay}
                     onChange={(e) => {
-                      if (e.target.value) setDiaryDate(e.target.value);
+                      if (e.target.value)
+                        setDiaryDate(
+                          e.target.value === day ? "" : e.target.value,
+                        );
                     }}
                   />
                 </Field>
-                <Button onClick={() => setModal("food")}>
-                  <Plus size={18} /> Log food
-                </Button>
+                <div className="actions">
+                  <button
+                    className="text-button"
+                    onClick={() => setDiaryDate("")}
+                  >
+                    Today
+                  </button>
+                  <Button onClick={() => openFood(diaryDay)}>
+                    <Plus size={18} /> Log food
+                  </Button>
+                </div>
               </div>
+              <p className="footnote">
+                {diaryDay === day ? "Today’s diary" : `Diary for ${diaryDay}`} ·
+                Home shows {day}. Food date can be changed when adding or
+                editing an entry.
+              </p>
+              {diary.length === 0 && data.foods.length > 0 && (
+                <div className="chips" aria-label="Dates with food entries">
+                  {[...new Set(data.foods.map((f) => f.date))]
+                    .sort()
+                    .reverse()
+                    .slice(0, 7)
+                    .map((date) => (
+                      <button
+                        key={date}
+                        onClick={() => setDiaryDate(date === day ? "" : date)}
+                      >
+                        View {date}
+                      </button>
+                    ))}
+                </div>
+              )}
               <div className="macro-grid">
                 {(["calories", "protein", "carbs", "fat"] as const).map((m) => (
                   <div className="card macro" key={m}>
@@ -917,6 +1065,13 @@ export default function App() {
                         </p>
                       </div>
                       <strong>{f.calories} kcal</strong>
+                      <button
+                        className="icon-button"
+                        aria-label={`Edit ${f.name}`}
+                        onClick={() => openFood(f.date, f)}
+                      >
+                        <Pencil size={17} />
+                      </button>
                       <button
                         aria-label={`Delete ${f.name}`}
                         className="icon-button"
@@ -1188,6 +1343,9 @@ export default function App() {
       {modal === "quick" && (
         <Dialog title="Quick log" onClose={() => setModal("")}>
           <div className="quick-actions">
+            <Button onClick={() => openQuick()}>
+              <Plus size={18} /> Log exercise
+            </Button>
             <Button
               onClick={() => {
                 setModal("");
@@ -1201,7 +1359,7 @@ export default function App() {
               secondary
               onClick={() => {
                 setTab("Nutrition");
-                setModal("food");
+                openFood();
               }}
             >
               <Utensils size={18} /> Log food
@@ -1214,135 +1372,91 @@ export default function App() {
         </Dialog>
       )}
       {modal === "exercise" && (
-        <Dialog title="Add an exercise" onClose={() => setModal("")}>
-          <Field label="Search or enter a custom exercise">
-            <input
-              autoFocus
-              value={exerciseQuery}
-              onChange={(e) => setExerciseQuery(e.target.value)}
-              placeholder="e.g. Hip thrust"
-              maxLength={100}
-            />
-          </Field>
-          <div className="exercise-list">
-            {exercises
-              .filter((n) =>
-                n.toLowerCase().includes(exerciseQuery.toLowerCase()),
-              )
-              .map((n) => (
-                <button key={n} onClick={() => addExercise(n)}>
-                  {n}
-                  <Plus size={18} />
-                </button>
-              ))}
+        <Dialog title="Add exercises" onClose={() => setModal("")}>
+          <p>
+            Tap to add several exercises. Previous results are filled in when
+            available; otherwise you’ll get three editable planned sets.
+          </p>
+          <ExercisePicker
+            selected={data.active?.exercises.map((e) => e.name) ?? []}
+            history={data.workouts}
+            onAdd={addExercise}
+          />
+          <div className="picker-done">
+            <Button onClick={() => setModal("")}>
+              Done adding
+              {data.active?.exercises.length
+                ? ` · ${data.active.exercises.length} exercises`
+                : ""}
+            </Button>
           </div>
-          {exerciseQuery.trim() &&
-            !exercises.some(
-              (n) => n.toLowerCase() === exerciseQuery.trim().toLowerCase(),
-            ) && (
-              <Button onClick={() => addExercise(exerciseQuery)}>
-                Add “{exerciseQuery.trim()}”
-              </Button>
-            )}
         </Dialog>
       )}
-      {modal === "routine" && (
-        <Dialog title="Save your routine" onClose={() => setModal("")}>
-          <form onSubmit={saveRoutine}>
-            <Field label="Routine name">
-              <input
-                name="name"
-                defaultValue={data.active?.name}
-                required
-                maxLength={80}
-              />
-            </Field>
-            <fieldset>
-              <legend>Training categories</legend>
-              <div className="category-options">
-                {categories.map((c) => (
-                  <label key={c}>
-                    <input type="checkbox" name="category" value={c} />
-                    {c}
-                  </label>
-                ))}
-              </div>
-            </fieldset>
-            <p>
-              Includes all current exercises and sets. Completion marks reset
-              when starting a routine.
-            </p>
-            <Button type="submit">Save routine</Button>
-          </form>
-        </Dialog>
-      )}
-      {modal === "food" && (
-        <Dialog title="Log food" onClose={() => setModal("")}>
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              const f = new FormData(e.currentTarget);
-              const food = {
-                id: id(),
-                date: diaryDate,
-                name: String(f.get("name")).trim(),
-                meal: String(f.get("meal")),
-                calories: Number(f.get("calories")),
-                protein: Number(f.get("protein")),
-                carbs: Number(f.get("carbs")),
-                fat: Number(f.get("fat")),
-              };
+      {modal === "routineBuilder" && data.routineDraft && (
+        <Dialog
+          title={
+            data.routines.some((r) => r.id === data.routineDraft!.id)
+              ? "Edit routine"
+              : "Create a routine"
+          }
+          onClose={() => setModal("")}
+        >
+          <p className="draft-status">
+            Draft saved on this device. You can close and come back.
+          </p>
+          <RoutineEditor
+            draft={data.routineDraft}
+            onChange={(routineDraft) => update({ ...data, routineDraft })}
+            onSave={saveRoutine}
+            history={data.workouts}
+            canStart={!data.active}
+            onDiscard={() => {
               if (
-                !food.name ||
-                [food.calories, food.protein, food.carbs, food.fat].some(
-                  (n) => !Number.isFinite(n) || n < 0,
-                )
+                confirm(
+                  "Discard this routine draft? Your saved routines will stay unchanged.",
+                ) &&
+                update({ ...data, routineDraft: null })
               )
-                return;
-              if (update({ ...data, foods: [...data.foods, food] }))
                 setModal("");
             }}
-          >
-            <Field label="Food or meal name">
-              <input
-                name="name"
-                required
-                maxLength={100}
-                placeholder="e.g. Tofu rice bowl"
-              />
-            </Field>
-            <Field label="Meal">
-              <select name="meal">
-                {["Breakfast", "Lunch", "Dinner", "Snack"].map((m) => (
-                  <option key={m}>{m}</option>
-                ))}
-              </select>
-            </Field>
-            <p>
-              Enter totals for the portion you ate. No values are estimated.
-            </p>
-            <div className="form-grid">
-              {[
-                ["calories", "Calories (kcal)"],
-                ["protein", "Protein (g)"],
-                ["carbs", "Carbohydrates (g)"],
-                ["fat", "Fat (g)"],
-              ].map(([name, label]) => (
-                <Field key={name} label={label}>
-                  <input
-                    name={name}
-                    required
-                    type="number"
-                    min="0"
-                    max="100000"
-                    step="0.1"
-                    inputMode="decimal"
-                  />
-                </Field>
-              ))}
-            </div>
-            <Button type="submit">Save food</Button>
-          </form>
+          />
+        </Dialog>
+      )}
+      {modal === "food" && editingFood && (
+        <Dialog
+          title={editingFood.name ? "Edit food" : "Log food"}
+          onClose={() => setModal("")}
+        >
+          <FoodEditor
+            key={editingFood.id}
+            food={editingFood}
+            onSave={(food) => {
+              const exists = data.foods.some((f) => f.id === food.id);
+              if (
+                update({
+                  ...data,
+                  foods: exists
+                    ? data.foods.map((f) => (f.id === food.id ? food : f))
+                    : [...data.foods, food],
+                })
+              ) {
+                setModal("");
+                setNotice(
+                  `${food.name} saved for ${food.date}${food.date === day ? " · today’s dashboard updated." : ". Switch the diary date to view this entry."}`,
+                );
+              }
+            }}
+          />
+        </Dialog>
+      )}
+      {modal === "quickExercise" && data.quickDraft && (
+        <Dialog title="Log an exercise" onClose={() => setModal("")}>
+          <QuickExercise
+            draft={data.quickDraft}
+            onChange={(quickDraft) => update({ ...data, quickDraft })}
+            onSave={saveQuick}
+            history={data.workouts}
+          />
         </Dialog>
       )}
       {detail && (
@@ -1367,6 +1481,15 @@ export default function App() {
               ))}
             </section>
           ))}
+          <Button
+            onClick={() => {
+              start({ ...detail, categories: [] });
+              setDetail(null);
+            }}
+          >
+            <Repeat2 size={17} />
+            {data.active ? "Resume workout" : "Repeat this workout"}
+          </Button>
           <Button
             secondary
             onClick={() => {

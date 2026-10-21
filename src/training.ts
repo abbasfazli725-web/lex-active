@@ -1,0 +1,16 @@
+export const exercises = [
+  "Barbell squat",
+  "Bench press",
+  "Deadlift",
+  "Hip thrust",
+  "Romanian deadlift",
+  "Lat pulldown",
+  "Seated row",
+  "Shoulder press",
+  "Bicep curl",
+  "Tricep extension",
+  "Leg press",
+  "Lateral raise",
+  "Push-up",
+  "Lunge",
+];
