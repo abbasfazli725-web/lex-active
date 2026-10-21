@@ -317,6 +317,7 @@ export function RoutineEditor({
   canStart: boolean;
 }) {
   const [picking, setPicking] = useState(!draft.exercises.length);
+  const [labels, setLabels] = useState(draft.categories.join(", "));
   const changeExercise = (exerciseId: string, fn: (e: Exercise) => Exercise) =>
     onChange({
       ...draft,
@@ -361,6 +362,64 @@ export function RoutineEditor({
           onChange={(e) => onChange({ ...draft, name: e.target.value })}
         />
       </label>
+      <details className="routine-labels">
+        <summary>Optional labels & organisation</summary>
+        <p>
+          Labels are optional shortcuts. They never get in the way of logging an
+          exercise.
+        </p>
+        <label className="field">
+          <span>Labels (comma separated)</span>
+          <input
+            value={labels}
+            maxLength={300}
+            placeholder="Upper, Lower, or your own labels"
+            onChange={(e) => {
+              setLabels(e.target.value);
+              onChange({
+                ...draft,
+                categories: [
+                  ...new Set(
+                    e.target.value
+                      .split(",")
+                      .map((c) => c.trim())
+                      .filter(Boolean),
+                  ),
+                ],
+              });
+            }}
+          />
+        </label>
+        <div className="chips">
+          {[
+            "Upper",
+            "Lower",
+            "Push",
+            "Pull",
+            "Legs",
+            "Glutes",
+            "Arms",
+            "Full Body",
+            "Cardio",
+            "Custom",
+          ].map((c) => (
+            <button
+              type="button"
+              key={c}
+              className={draft.categories.includes(c) ? "selected" : ""}
+              onClick={() => {
+                const categories = draft.categories.includes(c)
+                  ? draft.categories.filter((v) => v !== c)
+                  : [...draft.categories, c];
+                setLabels(categories.join(", "));
+                onChange({ ...draft, categories });
+              }}
+            >
+              {c}
+            </button>
+          ))}
+        </div>
+      </details>
       <p className="builder-hint">
         Set it up once. Next time, just start and tick off your sets. These are
         plans, not logged results.

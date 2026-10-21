@@ -1527,3 +1527,198 @@ summary {
     min-width: 40%;
   }
 }
+textarea {
+  width: 100%;
+  min-height: 90px;
+  resize: vertical;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--surface);
+  color: var(--text);
+  padding: 12px;
+  font: inherit;
+}
+.cloud-panel {
+  margin-top: 24px;
+  border-top: 1px solid var(--line);
+  padding-top: 24px;
+}
+.cloud-panel > p,
+.account-panel p {
+  font-size: 12px;
+}
+.sync-conflict {
+  padding: 16px;
+  background: var(--accent-soft);
+  border-radius: 12px;
+  margin-top: 16px;
+  overflow-wrap: anywhere;
+}
+.conflict-versions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.conflict-versions pre {
+  font-size: 10px;
+  max-height: 160px;
+  overflow: auto;
+}
+.conflict-versions h4 {
+  font-size: 12px;
+}
+.notification-count {
+  position: absolute;
+  top: 0;
+  right: 0;
+  border-radius: 20px;
+  background: var(--button);
+  color: var(--on-button);
+  font-size: 9px;
+  min-width: 16px;
+  padding: 2px;
+}
+.header-actions > .icon-button {
+  position: relative;
+}
+.notification-row {
+  display: block;
+  text-align: left;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  padding: 18px 10px;
+  width: 100%;
+}
+.notification-row.unread {
+  background: var(--accent-soft);
+}
+.notification-row small {
+  display: block;
+  margin-top: 7px;
+  font-size: 11px;
+}
+.social-row {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 17px 0;
+  border-bottom: 1px solid var(--line);
+  flex-wrap: wrap;
+}
+.social-row p {
+  margin: 4px 0;
+  font-size: 12px;
+}
+.social-row .actions {
+  margin-top: 0;
+}
+.friend-card {
+  padding: 20px 0;
+  border-bottom: 1px solid var(--line);
+}
+.sharing-panel {
+  border-radius: 10px;
+  background: var(--bg);
+  padding: 18px;
+  margin-top: 14px;
+}
+.sharing-panel > label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  font-size: 12px;
+}
+.sharing-panel input[type="checkbox"] {
+  width: 18px;
+  min-height: 18px;
+  accent-color: var(--accent);
+}
+.reaction {
+  min-width: 44px;
+  min-height: 44px;
+  background: var(--accent-soft);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  font-size: 19px;
+}
+.performance strong {
+  font-size: 13px;
+}
+.performance p {
+  font-size: 12px;
+  margin-bottom: 8px;
+}
+.chat {
+  border-top: 1px solid var(--line);
+  margin-top: 20px;
+  padding-top: 15px;
+}
+.chat-history {
+  max-height: 330px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 18px 0;
+}
+.chat-history article {
+  max-width: 90%;
+  padding: 12px;
+  background: var(--bg);
+  border-radius: 10px;
+  border: 1px solid var(--line);
+}
+.chat-history .own-message {
+  align-self: flex-end;
+  background: var(--accent-soft);
+}
+.chat-history article p {
+  margin: 0;
+  font-size: 13px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.chat-history small {
+  font-size: 9px;
+}
+.account-panel .chips button {
+  font-size: 11px;
+}
+.rest-status {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 16px;
+  border-radius: 12px;
+  background: var(--accent-soft);
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+.rest-status strong {
+  font-variant-numeric: tabular-nums;
+  font-size: 16px;
+}
+.training-tools {
+  margin: 16px 0;
+}
+.training-tools > summary {
+  padding-top: 0;
+}
+.rest-controls {
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 20px;
+  margin-bottom: 20px;
+}
+.rest-controls p {
+  font-size: 12px;
+}
+.rest-controls .field {
+  max-width: 200px;
+}
+.delete-account {
+  margin-top: 20px;
+  color: var(--muted);
+}

@@ -86,7 +86,12 @@ test("saves real food and theme, previews social without fake users, fits iPhone
   await page.reload();
   await expect(page.locator("html")).toHaveAttribute("data-theme", "Midnight");
   await nav.getByRole("button", { name: "Social", exact: true }).click();
-  await expect(page.getByText("PREVIEW · NOT YET AVAILABLE")).toBeVisible();
+  await expect(
+    page.getByRole("heading", {
+      name: "Connect with your people",
+      exact: true,
+    }),
+  ).toBeVisible();
   expect(
     await page.evaluate(
       () => document.documentElement.scrollWidth <= innerWidth,
@@ -419,4 +424,47 @@ test("nutrition follows the local day after midnight without silently moving old
       () => JSON.parse(localStorage.getItem("lex-active:v1")!).foods[0].date,
     ),
   ).toBe("2026-10-21");
+});
+
+test("rest timer survives navigation and reload; plate calculator uses actual inputs", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const nav = page.getByRole("navigation", {
+    name: "Main navigation",
+    exact: true,
+  });
+  await nav.getByRole("button", { name: "Train", exact: true }).click();
+  await page
+    .getByText("Training tools · rest timer & plate calculator", {
+      exact: true,
+    })
+    .click();
+  await page.getByLabel("Rest duration (seconds)").fill("120");
+  await page
+    .getByRole("button", { name: "Start rest timer", exact: true })
+    .click();
+  await nav.getByRole("button", { name: "Nutrition", exact: true }).click();
+  await page.getByRole("button", { name: "Pause timer", exact: true }).click();
+  await page.reload();
+  await expect(
+    page.getByRole("button", { name: "Resume timer", exact: true }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Skip timer", exact: true }).click();
+  await expect(
+    page.getByRole("button", { name: "Resume timer", exact: true }),
+  ).toHaveCount(0);
+  await nav.getByRole("button", { name: "Train", exact: true }).click();
+  await page
+    .getByText("Training tools · rest timer & plate calculator", {
+      exact: true,
+    })
+    .click();
+  await page
+    .getByRole("button", { name: "Plate calculator", exact: true })
+    .click();
+  await page.getByLabel("Total weight (kg)").fill("62.5");
+  await expect(
+    page.getByText("20 kg + 1.25 kg", { exact: true }),
+  ).toBeVisible();
 });

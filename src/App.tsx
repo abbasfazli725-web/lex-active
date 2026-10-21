@@ -22,7 +22,22 @@ import {
   Flower2,
   Pencil,
 } from "lucide-react";
+import { useAuth } from "./backend/Auth";
+import AccountPanel from "./backend/AccountPanel";
+import { useCloudSync } from "./backend/useCloudSync";
+import { mergeConcurrentState } from "./backend/records";
+import { CloudPanel } from "./backend/CloudPanel";
+import {
+  useRestTimer,
+  RestControls,
+  TimerStatus,
+  PlateCalculator,
+  estimatedOneRepMax,
+} from "./TrainingTools";
 const ProgressChart = lazy(() => import("./ProgressChart"));
+const Social = lazy(() => import("./backend/Social"));
+import type { SocialFocus } from "./backend/Social";
+import Notifications, { useNotificationCount } from "./backend/Notifications";
 import {
   initial,
   load,
@@ -132,13 +147,18 @@ function Dialog({
   );
 }
 export default function App() {
+  const auth = useAuth();
+  const unread = useNotificationCount();
+  const [socialFocus, setSocialFocus] = useState<SocialFocus>();
+  const storageKey = auth.storageKey;
+  const restTimer = useRestTimer(storageKey);
   const {
     needRefresh: [needRefresh, setNeedRefresh],
     updateServiceWorker,
   } = useRegisterSW({ immediate: true });
   const [boot] = useState(() => {
     try {
-      return { data: load(), error: "" };
+      return { data: load(storageKey), error: "" };
     } catch (e) {
       return { data: structuredClone(initial), error: String(e) };
     }
@@ -149,11 +169,21 @@ export default function App() {
     [modal, setModal] = useState(""),
     [notice, setNotice] = useState(""),
     [query, setQuery] = useState(""),
+    [selectedLabel, setSelectedLabel] = useState("All"),
     [detail, setDetail] = useState<Workout | null>(null),
     [diaryDate, setDiaryDate] = useState(""),
     [metric, setMetric] = useState("Volume"),
     [range, setRange] = useState("30"),
     [selectedExercise, setSelectedExercise] = useState("");
+  const cloud = useCloudSync(data, (next, expected) => {
+    const merged = mergeConcurrentState(expected, load(storageKey), next);
+    persist(merged, storageKey);
+    setData(merged);
+    return merged;
+  });
+  useEffect(() => {
+    if (auth.recovery) setModal("account");
+  }, [auth.recovery]);
   const [day, setDay] = useState(today());
   const [lastQuickName, setLastQuickName] = useState("");
   const [editingFood, setEditingFood] = useState<Food | null>(null);
@@ -164,7 +194,9 @@ export default function App() {
       refreshDay();
       if (boot.error) return;
       try {
-        setData(load());
+        const refreshed = load(storageKey);
+        setData(refreshed);
+        cloud.capture(refreshed);
       } catch {
         setError(
           "Saved data could not be refreshed. Export a backup before changing browser storage.",
@@ -172,7 +204,7 @@ export default function App() {
       }
     };
     const onStorage = (e: StorageEvent) => {
-      if (e.key === KEY || e.key === null) refresh();
+      if (e.key === storageKey || e.key === null) refresh();
     };
     const onVisible = () => {
       if (document.visibilityState === "visible") refresh();
@@ -187,7 +219,7 @@ export default function App() {
       document.removeEventListener("visibilitychange", onVisible);
       clearInterval(timer);
     };
-  }, [boot.error]);
+  }, [boot.error, storageKey]);
   function openQuick(name?: string) {
     if (
       name &&
@@ -262,7 +294,7 @@ export default function App() {
       return false;
     }
     try {
-      const stored = load();
+      const stored = load(storageKey);
       if (JSON.stringify(stored) !== JSON.stringify(data)) {
         setData(stored);
         setError(
@@ -270,8 +302,9 @@ export default function App() {
         );
         return false;
       }
-      persist(next);
+      persist(next, storageKey);
       setData(next);
+      cloud.capture(next);
       setError("");
       return true;
     } catch {
@@ -283,7 +316,7 @@ export default function App() {
   }
   function exportData() {
     const raw = boot.error
-      ? localStorage.getItem(KEY)
+      ? localStorage.getItem(storageKey)
       : JSON.stringify(data, null, 2);
     const a = document.createElement("a");
     a.href = URL.createObjectURL(
@@ -510,7 +543,14 @@ export default function App() {
               <Plus size={21} />
             </button>
             <span className="saved">
-              <i /> On-device storage
+              <i />{" "}
+              {auth.user
+                ? cloud.status.state === "synced"
+                  ? "Saved to cloud"
+                  : cloud.status.state === "syncing"
+                    ? "Syncing…"
+                    : "Saved on device"
+                : "On-device storage"}
             </span>
             <button
               className="icon-button"
@@ -518,6 +558,11 @@ export default function App() {
               onClick={() => setModal("notifications")}
             >
               <Bell size={20} />
+              {unread > 0 && (
+                <span className="notification-count">
+                  {unread > 99 ? "99+" : unread}
+                </span>
+              )}
             </button>
             <button
               className="avatar"
@@ -529,6 +574,22 @@ export default function App() {
           </div>
         </header>
         <main>
+          <TimerStatus timer={restTimer} />
+          {auth.user && ["error", "conflict"].includes(cloud.status.state) && (
+            <div className="notice">
+              <span>
+                {cloud.status.state === "conflict"
+                  ? "Cloud changes need your choice. Your device records are preserved."
+                  : "Saved on this device. Cloud sync needs attention."}
+              </span>
+              <button
+                className="text-button"
+                onClick={() => setModal("account")}
+              >
+                Review sync
+              </button>
+            </div>
+          )}
           {needRefresh && (
             <div role="status" className="notice">
               <span>A new version is ready. Your saved records stay here.</span>
@@ -815,6 +876,15 @@ export default function App() {
                     ))}
                 </div>
               </section>
+              <details className="card training-tools">
+                <summary>
+                  Training tools · rest timer & plate calculator
+                </summary>
+                <RestControls timer={restTimer} />
+                <Button secondary onClick={() => setModal("plates")}>
+                  Plate calculator
+                </Button>
+              </details>
               {data.active ? (
                 <section className="card workout-editor">
                   <div className="section-heading">
@@ -890,6 +960,25 @@ export default function App() {
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
               />
+              {data.routines.some((r) => r.categories.length > 0) && (
+                <details className="routine-label-filter">
+                  <summary>Filter saved groups by label</summary>
+                  <div className="chips">
+                    {[
+                      "All",
+                      ...new Set(data.routines.flatMap((r) => r.categories)),
+                    ].map((label) => (
+                      <button
+                        key={label}
+                        className={selectedLabel === label ? "selected" : ""}
+                        onClick={() => setSelectedLabel(label)}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </details>
+              )}
               <div className="routine-grid">
                 {data.routines
                   .filter((r) =>
@@ -1186,6 +1275,36 @@ export default function App() {
                 </p>
               </section>
               <section className="card history">
+                <h2>Estimated one-rep max</h2>
+                <p>
+                  Epley estimates from completed sets of 1–12 reps with added
+                  load. These are estimates, not a prescribed training load;
+                  unsupported sets are omitted.
+                </p>
+                {names.map((name) => {
+                  const estimates = data.workouts.flatMap((w) =>
+                    w.exercises
+                      .filter((e) => e.name === name)
+                      .flatMap((e) =>
+                        e.sets
+                          .map(estimatedOneRepMax)
+                          .filter((n): n is number => n !== null),
+                      ),
+                  );
+                  return estimates.length ? (
+                    <div className="data-point" key={name}>
+                      <span>{name}</span>
+                      <strong>{Math.max(...estimates)} kg estimated</strong>
+                    </div>
+                  ) : null;
+                })}
+                {!data.workouts.some((w) =>
+                  w.exercises.some((e) =>
+                    e.sets.some((s) => estimatedOneRepMax(s) !== null),
+                  ),
+                ) && <p>No supported loaded sets recorded yet.</p>}
+              </section>
+              <section className="card history">
                 <h2>Your personal bests</h2>
                 <p>
                   Heaviest completed set for each exercise. Bodyweight sets show
@@ -1222,62 +1341,16 @@ export default function App() {
             </>
           )}
           {tab === "Social" && (
-            <>
-              <PageTitle
-                kicker="BETTER, TOGETHER"
-                title="Your circle. Your space."
-                text="Connection that stays inside LEX ACTIVE."
+            <Suspense fallback={<p role="status">Opening your circle…</p>}>
+              <Social
+                state={data}
+                onUpdate={update}
+                onStart={start}
+                onAccount={() => setModal("account")}
+                flush={cloud.flush}
+                focus={socialFocus}
               />
-              <section className="social-banner">
-                <Users size={38} />
-                <span className="pill">PREVIEW · NOT YET AVAILABLE</span>
-                <h2>
-                  A little encouragement.
-                  <br />A lot of possibility.
-                </h2>
-                <p>
-                  Train your way, cheer on your friends, and share the wins that
-                  matter to you.
-                </p>
-              </section>
-              <div className="routine-grid">
-                {[
-                  {
-                    icon: Heart,
-                    title: "Friends & your feed",
-                    text: "Search usernames, connect with friends, and react or comment on their shared activity.",
-                  },
-                  {
-                    icon: Repeat2,
-                    title: "Workout Exchange",
-                    text: "Send a routine, try it in your own time, and return results with messages and comparisons.",
-                  },
-                  {
-                    icon: ChartNoAxesCombined,
-                    title: "Friends-only rankings",
-                    text: "Personal progress and friendly encouragement. No public or global leaderboards.",
-                  },
-                  {
-                    icon: ShieldCheck,
-                    title: "Your sharing, your choice",
-                    text: "Close-friend and partner permissions will be explicit, granular and revocable.",
-                  },
-                ].map(({ icon: Icon, title, text }) => (
-                  <section className="card" key={title}>
-                    <Icon className="accent" />
-                    <p className="eyebrow">PLANNED FEATURE</p>
-                    <h3>{title}</h3>
-                    <p>{text}</p>
-                  </section>
-                ))}
-              </div>
-              <p className="footnote">
-                No accounts, friend connections or messages exist yet. Reports,
-                achievements and workout summaries will only be shareable with
-                friends inside LEX ACTIVE. No external social posting or social
-                login.
-              </p>
-            </>
+            </Suspense>
           )}
           <footer>
             LEX ACTIVE <span>Made for your everyday.</span>
@@ -1299,9 +1372,31 @@ export default function App() {
           </button>
         ))}
       </nav>
+      {modal === "plates" && (
+        <Dialog title="Plate calculator" onClose={() => setModal("")}>
+          <PlateCalculator />
+        </Dialog>
+      )}
+      {modal === "account" && (
+        <Dialog title="Your account" onClose={() => setModal("")}>
+          <AccountPanel />
+          {auth.user && (
+            <CloudPanel
+              state={data}
+              status={cloud.status}
+              onChange={update}
+              onSync={cloud.sync}
+              onResolve={cloud.resolve}
+            />
+          )}
+        </Dialog>
+      )}
       {modal === "settings" && (
         <Dialog title="Your space" onClose={() => setModal("")}>
           <p>Make yourself at home.</p>
+          <Button secondary onClick={() => setModal("account")}>
+            {auth.user ? "Your account" : "Sign in or create account"}
+          </Button>
           <Field label="Appearance">
             <select
               value={data.theme}
@@ -1316,11 +1411,17 @@ export default function App() {
           </Field>
           <section className="settings-note">
             <ShieldCheck />
-            <h3>Saved on this device</h3>
+            <h3>
+              {auth.user
+                ? "Account records on this device"
+                : "Saved on this device"}
+            </h3>
             <p>
-              No account or cloud sync is connected. Clearing browser data
-              removes your records. Export backups regularly. Data is not
-              encrypted on this device; use a trusted personal device.
+              {auth.user
+                ? "Cloud sync status appears in your account. Offline changes stay queued until acknowledged."
+                : "These records stay device-only until you sign in and explicitly choose to import them."}{" "}
+              Export backups regularly. Device storage is not encrypted by the
+              app; use a trusted personal device.
             </p>
           </section>
           <Button secondary onClick={exportData}>
@@ -1334,10 +1435,21 @@ export default function App() {
       )}
       {modal === "notifications" && (
         <Dialog title="Notifications" onClose={() => setModal("")}>
-          <Empty title="A quieter kind of connection">
-            Preview: in-app notifications will arrive with accounts, friends and
-            Workout Exchange. Notifications are not connected yet.
-          </Empty>
+          <Notifications
+            onAccount={() => setModal("account")}
+            onOpen={(n) => {
+              const pane = n.kind.startsWith("exchange")
+                ? "Exchange"
+                : n.kind === "message"
+                  ? "Messages"
+                  : n.kind === "reaction" || n.kind === "comment"
+                    ? "Feed"
+                    : "Friends";
+              setSocialFocus({ pane, id: n.resource_id ?? undefined });
+              setModal("");
+              setTab("Social");
+            }}
+          />
         </Dialog>
       )}
       {modal === "quick" && (

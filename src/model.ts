@@ -224,9 +224,12 @@ function validRoutine(r: unknown): boolean {
     r.exercises.every(validExercise)
   );
 }
-export function load(): State {
-  const raw = localStorage.getItem(KEY);
+export function load(storageKey = KEY): State {
+  const raw = localStorage.getItem(storageKey);
   if (!raw) return structuredClone(initial);
+  return parseState(raw);
+}
+export function parseState(raw: string): State {
   const s: unknown = JSON.parse(raw);
   if (
     !record(s) ||
@@ -277,6 +280,6 @@ export function load(): State {
     );
   return s as State;
 }
-export function persist(s: State) {
-  localStorage.setItem(KEY, JSON.stringify(s));
+export function persist(s: State, storageKey = KEY) {
+  localStorage.setItem(storageKey, JSON.stringify(s));
 }
