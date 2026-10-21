@@ -15,7 +15,77 @@
     <title>LEX ACTIVE</title>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <section
+        id="boot-status"
+        role="status"
+        style="
+          max-width: 440px;
+          margin: 15vh auto;
+          padding: 28px;
+          font-family:
+            -apple-system,
+            BlinkMacSystemFont,
+            Segoe UI,
+            sans-serif;
+          color: #302c2c;
+          background: #fffcf9;
+          border: 1px solid #e8dfd9;
+          border-radius: 16px;
+          line-height: 1.6;
+        "
+      >
+        <p style="letter-spacing: 3px; font-size: 12px; color: #75404d">
+          LEX ACTIVE
+        </p>
+        <h1
+          id="boot-title"
+          style="font-family: Georgia, serif; font-weight: 400; font-size: 28px"
+        >
+          Opening your space…
+        </h1>
+        <p id="boot-message">Loading your training and nutrition companion.</p>
+        <div id="boot-help" hidden>
+          <p>
+            Try reloading. If this is a new GitHub Pages deployment, its source
+            must be GitHub Actions, rather than the main branch: the app needs
+            its production build.
+          </p>
+          <button
+            onclick="location.reload()"
+            style="
+              padding: 12px 20px;
+              background: #75404d;
+              color: white;
+              border: 0;
+              border-radius: 8px;
+              font: inherit;
+            "
+          >
+            Reload LEX ACTIVE
+          </button>
+          <p>Your saved records have not been cleared.</p>
+        </div>
+        <noscript
+          >Enable JavaScript in Safari settings to open LEX ACTIVE.</noscript
+        >
+      </section>
+    </div>
+    <script>
+      (() => {
+        const explain = () => {
+          if (!document.getElementById("boot-status")) return;
+          document.getElementById("boot-title").textContent =
+            "We couldn’t open the app.";
+          document.getElementById("boot-message").textContent =
+            "The application files could not load. Check your connection or deployment.";
+          document.getElementById("boot-help").hidden = false;
+        };
+        window.addEventListener("error", explain, true);
+        window.addEventListener("unhandledrejection", explain);
+        setTimeout(explain, 15000);
+      })();
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
